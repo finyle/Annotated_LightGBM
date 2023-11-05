@@ -1,0 +1,8 @@
+numpy
+pytest
+scikit-learn
+psutil
+scipy
+lightgbm
+dask
+joblib
