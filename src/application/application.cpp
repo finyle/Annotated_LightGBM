@@ -31,6 +31,7 @@ namespace LightGBM {
 Application::Application(int argc, char** argv) {
   LoadParameters(argc, argv);
   // set number of threads for openmp
+  // 设置多线程
   OMP_SET_NUM_THREADS(config_.num_threads);
   if (config_.data.size() == 0 && config_.task != TaskType::kConvertModel) {
     Log::Fatal("No training/prediction data, application quit");
@@ -47,6 +48,7 @@ Application::~Application() {
   }
 }
 
+// 导入配置文件
 void Application::LoadParameters(int argc, char** argv) {
   std::unordered_map<std::string, std::vector<std::string>> all_params;
   std::unordered_map<std::string, std::string> params;
@@ -85,6 +87,7 @@ void Application::LoadParameters(int argc, char** argv) {
   Log::Info("Finished loading parameters");
 }
 
+//
 void Application::LoadData() {
   auto start_time = std::chrono::high_resolution_clock::now();
   std::unique_ptr<Predictor> predictor;
@@ -165,6 +168,7 @@ void Application::LoadData() {
             std::chrono::duration<double, std::milli>(end_time - start_time) * 1e-3);
 }
 
+// 初始化训练环境： 模型创建(Boosting) -> 目标函数创建(objectiveFunc/loss/criterion) -> 加载train_data -> 初始化目标函数 -> 初始化boosting -> 加载valid_data到boosting
 void Application::InitTrain() {
   if (config_.is_parallel) {
     // need init network

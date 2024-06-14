@@ -467,3 +467,7 @@ dask-worker-space/
 *_rsa
 
 *.exe
+
+cmake-build-debug/*
+external_libs/*
+venv/*
