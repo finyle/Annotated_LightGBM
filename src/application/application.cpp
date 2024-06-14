@@ -28,20 +28,23 @@
 
 namespace LightGBM {
 
+//   构造函数实现
 Application::Application(int argc, char** argv) {
   LoadParameters(argc, argv);
-  // set number of threads for openmp
-  // 设置多线程
+  // set number of threads for openmp； 读取配置文件： 多线程openmp的线程数设置， 导入openmp parallel 实现并行计算
   OMP_SET_NUM_THREADS(config_.num_threads);
+//  配置文件未导入数据 && 启动任务并非 ModelConvert：中断
   if (config_.data.size() == 0 && config_.task != TaskType::kConvertModel) {
+//   utils.log 自定义log实现
     Log::Fatal("No training/prediction data, application quit");
   }
-
+//  配置模型运行设备： cuda
   if (config_.device_type == std::string("cuda")) {
       LGBM_config_::current_device = lgbm_device_cuda;
   }
 }
 
+//析构
 Application::~Application() {
   if (config_.is_parallel) {
     Network::Dispose();
@@ -87,9 +90,11 @@ void Application::LoadParameters(int argc, char** argv) {
   Log::Info("Finished loading parameters");
 }
 
-//
+// 加载数据
 void Application::LoadData() {
+// 计时
   auto start_time = std::chrono::high_resolution_clock::now();
+// 初始化 predictor
   std::unique_ptr<Predictor> predictor;
   // prediction is needed if using input initial model(continued train)
   PredictFunction predict_fun = nullptr;
@@ -170,6 +175,7 @@ void Application::LoadData() {
 
 // 初始化训练环境： 模型创建(Boosting) -> 目标函数创建(objectiveFunc/loss/criterion) -> 加载train_data -> 初始化目标函数 -> 初始化boosting -> 加载valid_data到boosting
 void Application::InitTrain() {
+//    分布式任务启动： 网络环境初始化；
   if (config_.is_parallel) {
     // need init network
     Network::Init(config_);

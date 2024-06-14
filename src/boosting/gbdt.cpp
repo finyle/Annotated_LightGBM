@@ -49,24 +49,25 @@ GBDT::GBDT()
 GBDT::~GBDT() {
 }
 
+// 初始化 GBDT 对象， 重载 Boosting.Init
 void GBDT::Init(const Config* config, const Dataset* train_data, const ObjectiveFunction* objective_function,
                 const std::vector<const Metric*>& training_metrics) {
   CHECK_NOTNULL(train_data);
   train_data_ = train_data;
-  if (!config->monotone_constraints.empty()) {
+  if (!config->monotone_constraints.empty()) {                    // 单调性限制
     CHECK_EQ(static_cast<size_t>(train_data_->num_total_features()), config->monotone_constraints.size());
   }
   if (!config->feature_contri.empty()) {
     CHECK_EQ(static_cast<size_t>(train_data_->num_total_features()), config->feature_contri.size());
   }
-  iter_ = 0;
+  iter_ = 0;                                                     // 迭代次数
   num_iteration_for_pred_ = 0;
-  max_feature_idx_ = 0;
+  max_feature_idx_ = 0;                                          // 最大特征数
   num_class_ = config->num_class;
   config_ = std::unique_ptr<Config>(new Config(*config));
-  early_stopping_round_ = config_->early_stopping_round;
+  early_stopping_round_ = config_->early_stopping_round;        // early_stoping
   es_first_metric_only_ = config_->first_metric_only;
-  shrinkage_rate_ = config_->learning_rate;
+  shrinkage_rate_ = config_->learning_rate;                     // 衰减率
 
   if (config_->device_type == std::string("cuda")) {
     LGBM_config_::current_learner = use_cuda_learner;
@@ -78,7 +79,7 @@ void GBDT::Init(const Config* config, const Dataset* train_data, const Objective
     #endif  // USE_CUDA
   }
 
-  // load forced_splits file
+  // load forced_splits file                                    // 加载 splite file
   if (!config->forcedsplits_filename.empty()) {
     std::ifstream forced_splits_file(config->forcedsplits_filename.c_str());
     std::stringstream buffer;
@@ -87,30 +88,30 @@ void GBDT::Init(const Config* config, const Dataset* train_data, const Objective
     forced_splits_json_ = Json::parse(buffer.str(), &err);
   }
 
-  objective_function_ = objective_function;
-  num_tree_per_iteration_ = num_class_;
+  objective_function_ = objective_function;                     // 目标函数
+  num_tree_per_iteration_ = num_class_;                         // 每轮迭代中的决策树数
   if (objective_function_ != nullptr) {
     num_tree_per_iteration_ = objective_function_->NumModelPerIteration();
     if (objective_function_->IsRenewTreeOutput() && !config->monotone_constraints.empty()) {
       Log::Fatal("Cannot use ``monotone_constraints`` in %s objective, please disable it.", objective_function_->GetName());
     }
   }
-
+                                                                // 数据采样策略
   data_sample_strategy_.reset(SampleStrategy::CreateSampleStrategy(config_.get(), train_data_, objective_function_, num_tree_per_iteration_));
-  is_constant_hessian_ = GetIsConstHessian(objective_function);
+  is_constant_hessian_ = GetIsConstHessian(objective_function);         // hessian
 
   boosting_on_gpu_ = objective_function_ != nullptr && objective_function_->IsCUDAObjective() &&
                      !data_sample_strategy_->IsHessianChange();  // for sample strategy with Hessian change, fall back to boosting on CPU
-
+                                                                // 创建 TreeLearner
   tree_learner_ = std::unique_ptr<TreeLearner>(TreeLearner::CreateTreeLearner(config_->tree_learner, config_->device_type,
                                                                               config_.get(), boosting_on_gpu_));
 
   // init tree learner
   tree_learner_->Init(train_data_, is_constant_hessian_);
-  tree_learner_->SetForcedSplit(&forced_splits_json_);
+  tree_learner_->SetForcedSplit(&forced_splits_json_);          // 叶节点分裂
 
   // push training metrics
-  training_metrics_.clear();
+  training_metrics_.clear();                                                  // 训练指标：
   for (const auto& metric : training_metrics) {
     training_metrics_.push_back(metric);
   }
