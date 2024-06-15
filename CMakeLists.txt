@@ -6,6 +6,8 @@ option(USE_HDFS "Enable HDFS support (EXPERIMENTAL)" OFF)
 option(USE_TIMETAG "Set to ON to output time costs" OFF)
 option(USE_CUDA "Enable CUDA-accelerated training " OFF)
 option(USE_DEBUG "Set to ON for Debug mode" OFF)
+
+# sanitizer cpp 内存分析工具
 option(USE_SANITIZER "Use santizer flags" OFF)
 set(
   ENABLED_SANITIZERS
@@ -15,6 +17,7 @@ set(
   "Semicolon separated list of sanitizer names, e.g., 'address;leak'. \
 Supported sanitizers are address, leak, undefined and thread."
 )
+
 option(BUILD_CPP_TEST "Build C++ tests with Google Test" OFF)
 option(BUILD_STATIC_LIB "Build static library" OFF)
 option(__BUILD_FOR_R "Set to ON if building lib_lightgbm for use with the R package" OFF)
@@ -55,6 +58,7 @@ if(__INTEGRATE_OPENCL)
   message(STATUS "Building library with integrated OpenCL components")
 endif()
 
+# 编译器适配
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8.2")
     message(FATAL_ERROR "Insufficient gcc version")
@@ -78,6 +82,7 @@ elseif(MSVC)
   cmake_minimum_required(VERSION 3.8)
 endif()
 
+# swig python-cpp 桥接工具
 if(USE_SWIG)
   find_package(SWIG REQUIRED)
   find_package(Java REQUIRED)
@@ -105,6 +110,7 @@ if(USE_SWIG)
   endif()
 endif()
 
+# eigen cpp 向量运算库
 set(EIGEN_DIR "${PROJECT_SOURCE_DIR}/external_libs/eigen")
 include_directories(${EIGEN_DIR})
 
@@ -112,6 +118,7 @@ include_directories(${EIGEN_DIR})
 add_definitions(-DEIGEN_MPL2_ONLY)
 add_definitions(-DEIGEN_DONT_PARALLELIZE)
 
+# 指定工程打包文件目录： build dir
 if(__BUILD_FOR_R)
     find_package(LibR REQUIRED)
     message(STATUS "LIBR_EXECUTABLE: ${LIBR_EXECUTABLE}")
@@ -121,6 +128,7 @@ if(__BUILD_FOR_R)
     add_definitions(-DLGB_R_BUILD)
 endif()
 
+# 依赖适配： GPU, CUDA, HDFS
 if(USE_TIMETAG)
     add_definitions(-DTIMETAG)
 endif()
@@ -280,6 +288,7 @@ if(USE_HDFS)
     set(HDFS_CXX_LIBRARIES ${HDFS_LIB} ${JAVA_JVM_LIBRARY})
 endif()
 
+#
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("
 #include <xmmintrin.h>
@@ -310,6 +319,7 @@ if(${MM_MALLOC})
   add_definitions(-DMM_MALLOC)
 endif()
 
+# cpp 编译环境适配： unix | mingw | cygwin
 if(UNIX OR MINGW OR CYGWIN)
   set(
     CMAKE_CXX_FLAGS
@@ -335,6 +345,7 @@ if(WIN32 AND MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
 endif()
 
+# cpp 编译环境依赖适配：
 # Check if inet_pton is already available, to avoid conflicts with the implementation in LightGBM.
 # As of 2022, MinGW started including a definition of inet_pton.
 if(WIN32)
@@ -374,6 +385,7 @@ else()
     endif()
 endif()
 
+# 项目头文件，执行文件打包，库文件打包 目录设置：默认： projectSourceDir
 set(LightGBM_HEADER_DIR ${PROJECT_SOURCE_DIR}/include)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
@@ -393,6 +405,7 @@ if(USE_MPI)
   include_directories(${MPI_CXX_INCLUDE_PATH})
 endif()
 
+# 源文件目录索引
 file(
     GLOB
     SOURCES
@@ -419,6 +432,7 @@ if(USE_CUDA)
 endif()
 )
 
+# 执行文件， 链接库 路径设置
 add_library(lightgbm_objs OBJECT ${SOURCES})
 
 add_executable(lightgbm src/main.cpp src/application/application.cpp)
@@ -446,6 +460,7 @@ if(MSVC)
   set_target_properties(_lightgbm PROPERTIES OUTPUT_NAME "lib_lightgbm")
 endif()
 
+# swig python-cpp 桥接api设置：
 if(USE_SWIG)
   set_property(SOURCE swig/lightgbmlib.i PROPERTY CPLUSPLUS ON)
   list(APPEND swig_options -package com.microsoft.ml.lightgbm)
@@ -508,6 +523,7 @@ if(USE_SWIG)
   endif()
 endif()
 
+# 依赖相关(mpi, openmp, gpu, cuda, hdfs 动态链接库路径设置)
 if(USE_MPI)
   target_link_libraries(lightgbm_objs PUBLIC ${MPI_CXX_LIBRARIES})
 endif()
