@@ -202,9 +202,9 @@ void Application::InitTrain() {
     Log::Info("Save data as binary finished, exit");
     exit(0);
   }
-  // initialize the objective function
+  // initialize the objective function 由objective 中内置的各个objfunc重载实现
   objective_fun_->Init(train_data_->metadata(), train_data_->num_data());
-  // initialize the boosting
+  // initialize the boosting, 由gddt.init 重载实现
   boosting_->Init(&config_, train_data_.get(), objective_fun_.get(),
                   Common::ConstPtrInVectorWrapper<Metric>(train_metric_));
   // add validation data into boosting
